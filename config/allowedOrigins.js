@@ -1,5 +1,5 @@
 const allowedOrigins = [
-  "https://ananda-hostal-web.vercel.app/",
+  "https://ananda-hostal-web.vercel.app",
   "http://localhost:3000",
   "http://localhost:5173",
   "http://52.136.38.68:5000",
