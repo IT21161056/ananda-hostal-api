@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Management API</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      }
+
+      body {
+        background-color: #f5f7fa;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        color: #2d3748;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 800px;
+        width: 100%;
+        text-align: center;
+        padding: 40px;
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      }
+
+      .logo {
+        font-size: 36px;
+        font-weight: 800;
+        margin-bottom: 16px;
+        color: #4a5568;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+      }
+
+      .logo-icon {
+        display: inline-block;
+        width: 48px;
+        height: 48px;
+        background-color: #4299e1;
+        border-radius: 8px;
+        position: relative;
+      }
+
+      .logo-icon::before {
+        content: "";
+        position: absolute;
+        top: 10px;
+        left: 14px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: white;
+      }
+
+      .logo-icon::after {
+        content: "";
+        position: absolute;
+        top: 34px;
+        left: 18px;
+        width: 12px;
+        height: 7px;
+        border-radius: 3px 3px 0 0;
+        background-color: white;
+      }
+
+      .tagline {
+        font-size: 18px;
+        color: #718096;
+        margin-bottom: 32px;
+      }
+
+      .api-status {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 24px;
+      }
+
+      .status-indicator {
+        width: 12px;
+        height: 12px;
+        background-color: #48bb78;
+        border-radius: 50%;
+        margin-right: 8px;
+        position: relative;
+      }
+
+      .status-indicator::after {
+        content: "";
+        position: absolute;
+        top: -4px;
+        left: -4px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: rgba(72, 187, 120, 0.3);
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(0.8);
+          opacity: 0.8;
+        }
+        50% {
+          transform: scale(1);
+          opacity: 0.4;
+        }
+        100% {
+          transform: scale(0.8);
+          opacity: 0.8;
+        }
+      }
+
+      .status-text {
+        font-size: 16px;
+        font-weight: 500;
+        color: #48bb78;
+      }
+
+      .api-info {
+        margin-bottom: 32px;
+      }
+
+      .api-info h2 {
+        font-size: 22px;
+        margin-bottom: 16px;
+        color: #4a5568;
+      }
+
+      .endpoint-list {
+        list-style: none;
+        background-color: #f7fafc;
+        border-radius: 8px;
+        padding: 16px;
+        text-align: left;
+        margin-bottom: 24px;
+      }
+
+      .endpoint {
+        padding: 12px 16px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+      }
+
+      .endpoint:last-child {
+        border-bottom: none;
+      }
+
+      .method {
+        background-color: #4299e1;
+        color: white;
+        font-size: 14px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 4px;
+        margin-right: 12px;
+      }
+
+      .method.post {
+        background-color: #48bb78;
+      }
+
+      .method.put {
+        background-color: #ed8936;
+      }
+
+      .method.delete {
+        background-color: #f56565;
+      }
+
+      .path {
+        font-family: monospace;
+        font-size: 15px;
+        color: #2d3748;
+      }
+
+      .button {
+        display: inline-block;
+        background-color: #4299e1;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: background-color 0.2s;
+      }
+
+      .button:hover {
+        background-color: #3182ce;
+      }
+
+      .button-container {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .button.secondary {
+        background-color: #718096;
+      }
+
+      .button.secondary:hover {
+        background-color: #4a5568;
+      }
+
+      footer {
+        margin-top: 40px;
+        font-size: 14px;
+        color: #718096;
+      }
+
+      @media (max-width: 640px) {
+        .container {
+          padding: 24px;
+        }
+
+        .logo {
+          font-size: 28px;
+        }
+
+        .tagline {
+          font-size: 16px;
+        }
+
+        .button-container {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">
+        <span class="logo-icon"></span>
+        User Management API
+      </div>
+      <p class="tagline">
+        Secure and scalable user authentication and management
+      </p>
+
+      <div class="api-status">
+        <span class="status-indicator"></span>
+        <span class="status-text">API is online and operational</span>
+      </div>
+
+      <div class="api-info">
+        <h2>Available Endpoints</h2>
+        <ul class="endpoint-list">
+          <li class="endpoint">
+            <span class="method">GET</span>
+            <span class="path">/users</span>
+          </li>
+          <li class="endpoint">
+            <span class="method">GET</span>
+            <span class="path">/users/:id</span>
+          </li>
+          <li class="endpoint">
+            <span class="method post">POST</span>
+            <span class="path">/users/register</span>
+          </li>
+          <li class="endpoint">
+            <span class="method post">POST</span>
+            <span class="path">/users/login</span>
+          </li>
+          <li class="endpoint">
+            <span class="method put">PUT</span>
+            <span class="path">/users/:id</span>
+          </li>
+          <li class="endpoint">
+            <span class="method delete">DELETE</span>
+            <span class="path">/users/:id</span>
+          </li>
+          <li class="endpoint">
+            <span class="method post">POST</span>
+            <span class="path">/users/logout</span>
+          </li>
+        </ul>
+        <div class="button-container">
+          <a href="/api/v1/docs" class="button">View API Documentation</a>
+          <a href="/dashboard" class="button secondary">Admin Dashboard</a>
+        </div>
+      </div>
+    </div>
+
+    <footer>&copy; 2025 User Management API. All rights reserved.</footer>
+  </body>
+</html>
