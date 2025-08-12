@@ -198,31 +198,25 @@ const getStudentByAdmissionNumber = asyncHandler(async (req, res) => {
 
 /**
  * @desc    Update student with proper nested object handling
- * @route   PUT /api/students/:admissionNumber
+ * @route   PUT /api/students/:id
  * @access  Private/Admin
  */
 const updateStudent = asyncHandler(async (req, res) => {
-  const { admissionNumber } = req.params;
+  const { id } = req.params;
   const updateData = req.body;
 
-  const student = await Student.findOne({ admissionNumber });
+  console.log("id >>", id);
+
+  const student = await Student.findById(id);
   if (!student) {
     res.status(404);
     throw new Error("Student not found");
   }
 
-  // Prevent changing admission number
-  if (
-    updateData.admissionNumber &&
-    updateData.admissionNumber !== student.admissionNumber
-  ) {
-    res.status(400);
-    throw new Error("Admission number cannot be changed");
-  }
-
   // Update top-level fields
   const topLevelFields = [
     "name",
+    "admissionNumber", // Now included in top-level fields
     "admissionDate",
     "dateOfBirth",
     "bloodGroup",
@@ -234,7 +228,12 @@ const updateStudent = asyncHandler(async (req, res) => {
 
   topLevelFields.forEach((field) => {
     if (updateData[field] !== undefined) {
-      student[field] = updateData[field];
+      // Convert admissionNumber to Number if it's being updated
+      if (field === "admissionNumber") {
+        student[field] = Number(updateData[field]);
+      } else {
+        student[field] = updateData[field];
+      }
     }
   });
 

@@ -15,12 +15,12 @@ import { protect, authorizeRoles } from "../middleware/authmiddleware.js";
 router.route("/").post(createStudent).get(getAllStudents);
 
 router
-  .route("/:admissionNumber")
+  .route("/:id")
   .get(getStudentByAdmissionNumber)
   .put(updateStudent)
   .delete(deleteStudent);
 
-router.route("/:admissionNumber/status").patch(toggleStudentStatus);
+router.route("/:id/status").patch(toggleStudentStatus);
 
 // New route for attendance marking
 router.route("/attendance/marking").get(
