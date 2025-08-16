@@ -23,6 +23,9 @@ import userRoutes from "./routes/user.routes.js";
 import studentRoutes from "./routes/student.routes.js";
 import attendanceRoutes from "./routes/attendance.routes.js";
 
+// 🔹 Socket handler (central entry point)
+import socketHandler from "./sockets/index.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -30,7 +33,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // Replace with your React app's URL
+    origin: "*", // Replace with your React app's URL
     methods: ["GET", "POST", "PUT", "DELETE"],
   },
 });
@@ -73,16 +76,6 @@ app.use((req, res, next) => {
 
 app.use("/", express.static(path.join(__dirname, "public")));
 app.use("/", rootRoute);
-
-io.on("connection", (socket) => {
-  console.log("Client connected:", socket.id);
-
-  io.emit("debug-message", {
-    text: "Hello to all connected clients!",
-    connectionCount: io.engine.clientsCount,
-    timestamp: new Date().toISOString(),
-  });
-});
 
 /**
  * @swagger
@@ -133,15 +126,17 @@ app.all("*", (req, res) => {
   } else if (req.accepts("json")) {
     res.json({ message: "404 Not Found" });
   } else {
-    res.type("txt").send("404 Not Fund");
+    res.type("txt").send("404 Not Found");
   }
 });
 
 // Error handling middleware
 app.use(errorMiddleware);
 
-// Server setup
+// 🔹 Attach socket handlers
+socketHandler(io);
 
+// Server setup
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`API base URL: ${BASE_URL}`);
