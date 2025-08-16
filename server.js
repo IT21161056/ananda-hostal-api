@@ -1,4 +1,6 @@
 import dotenv from "dotenv";
+import { createServer } from "node:http";
+import { Server } from "socket.io";
 dotenv.config();
 import path from "path";
 import cors from "cors";
@@ -25,6 +27,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173", // Replace with your React app's URL
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  },
+});
 const PORT = process.env.PORT || 5001;
 const BASE_URL = process.env.API_BASE_URL || "/api/v1";
 
@@ -64,6 +73,16 @@ app.use((req, res, next) => {
 
 app.use("/", express.static(path.join(__dirname, "public")));
 app.use("/", rootRoute);
+
+io.on("connection", (socket) => {
+  console.log("Client connected:", socket.id);
+
+  io.emit("debug-message", {
+    text: "Hello to all connected clients!",
+    connectionCount: io.engine.clientsCount,
+    timestamp: new Date().toISOString(),
+  });
+});
 
 /**
  * @swagger
@@ -123,7 +142,7 @@ app.use(errorMiddleware);
 
 // Server setup
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`API base URL: ${BASE_URL}`);
   console.log(`Swagger docs available at: ${BASE_URL}/docs`);
