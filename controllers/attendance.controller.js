@@ -98,6 +98,73 @@ const createAttendanceSession = asyncHandler(async (req, res) => {
   });
 });
 
+// /**
+//  * @desc    Get all attendance sessions with filtering
+//  * @route   GET /api/attendance/sessions
+//  * @access  Private/Warden
+//  */
+// const getAttendanceSessions = asyncHandler(async (req, res) => {
+//   const {
+//     sessionType,
+//     dorm,
+//     student,
+//     isCompleted,
+//     fromDate,
+//     toDate,
+//     page = 1,
+//     limit = 10,
+//   } = req.query;
+
+//   let query = {};
+
+//   // Date filtering
+//   if (fromDate || toDate) {
+//     query.createdAt = {};
+//     if (fromDate) query.createdAt.$gte = new Date(fromDate);
+//     if (toDate) query.createdAt.$lte = new Date(toDate);
+//   }
+
+//   // Other filters
+//   if (sessionType) query.sessionType = sessionType;
+//   if (dorm) query.dorm = dorm;
+//   if (isCompleted) query.isCompleted = isCompleted === "true";
+
+//   // Student-specific filtering
+//   if (student) {
+//     const studentRecords = await AttendanceRecord.find({ student }).select(
+//       "_id"
+//     );
+//     query.attendanceRecords = { $in: studentRecords.map((r) => r._id) };
+//   }
+
+//   const skip = (page - 1) * limit;
+
+//   const [sessions, total] = await Promise.all([
+//     AttendanceSession.find(query)
+//       .populate({
+//         path: "attendanceRecords",
+//         populate: {
+//           path: "student",
+//           select: "name admissionNumber class dorm", // Use correct field names from your model
+//           model: "Student",
+//         },
+//       })
+//       .populate("markedBy", "name role") // Changed to match your User model
+//       .sort({ createdAt: -1 })
+//       .skip(skip)
+//       .limit(limit),
+//     AttendanceSession.countDocuments(query),
+//   ]);
+
+//   res.status(200).json({
+//     success: true,
+//     total,
+//     page: parseInt(page),
+//     pages: Math.ceil(total / limit),
+//     data: sessions,
+//   });
+// });
+
 /**
  * @desc    Get all attendance sessions with filtering
  * @route   GET /api/attendance/sessions
@@ -109,19 +176,25 @@ const getAttendanceSessions = asyncHandler(async (req, res) => {
     dorm,
     student,
     isCompleted,
-    fromDate,
-    toDate,
+    date, // Changed from fromDate/toDate to just date
     page = 1,
     limit = 10,
   } = req.query;
 
   let query = {};
 
-  // Date filtering
-  if (fromDate || toDate) {
-    query.createdAt = {};
-    if (fromDate) query.createdAt.$gte = new Date(fromDate);
-    if (toDate) query.createdAt.$lte = new Date(toDate);
+  // Single date filtering
+  if (date) {
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0); // Start of the day
+
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999); // End of the day
+
+    query.createdAt = {
+      $gte: startDate,
+      $lte: endDate,
+    };
   }
 
   // Other filters
@@ -142,26 +215,33 @@ const getAttendanceSessions = asyncHandler(async (req, res) => {
   const [sessions, total] = await Promise.all([
     AttendanceSession.find(query)
       .populate({
-        path: "attendanceRecords",
-        populate: {
-          path: "student",
-          select: "name admissionNumber class dorm", // Use correct field names from your model
-          model: "Student",
-        },
+        path: "markedBy",
+        select: "firstName lastName role", // Assuming these are the fields in your User model
       })
-      .populate("markedBy", "name role") // Changed to match your User model
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit),
+      .limit(limit)
+      .lean(), // Convert to plain JavaScript objects
     AttendanceSession.countDocuments(query),
   ]);
 
+  // Transform the data to match your interface
+  const formattedSessions = sessions.map((session) => ({
+    id: session._id.toString(),
+    date: session.createdAt.toISOString().split("T")[0], // Format as YYYY-MM-DD
+    session: session.sessionType,
+    presentCount: session.presentCount,
+    absentCount: session.absentCount,
+    leaveCount: session.leaveCount || 0, // Default to 0 if not present
+    totalStudents: session.totalStudents,
+    recordedBy: session.markedBy
+      ? `${session.markedBy.firstName} ${session.markedBy.lastName}`
+      : "Unknown",
+  }));
+
   res.status(200).json({
-    success: true,
     total,
-    page: parseInt(page),
-    pages: Math.ceil(total / limit),
-    data: sessions,
+    data: formattedSessions,
   });
 });
 

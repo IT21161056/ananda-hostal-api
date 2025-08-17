@@ -123,7 +123,7 @@ const createStudent = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Get all students
+ * @desc    Get all students with pagination
  * @route   GET /api/students
  * @access  Private/Admin
  */
@@ -135,7 +135,10 @@ const getAllStudents = asyncHandler(async (req, res) => {
     dorm,
     class: studentClass,
     isActive,
+    page = 1, // Default to page 1
+    pageSize = 10, // Default to 10 items per page
   } = req.query;
+
   let query = {};
 
   if (admissionNumber) {
@@ -166,8 +169,21 @@ const getAllStudents = asyncHandler(async (req, res) => {
     ].filter(Boolean); // Remove null values from OR conditions
   }
 
-  const total = await Student.countDocuments({});
-  const students = await Student.find(query).sort({ admissionNumber: 1 });
+  // Convert page and pageSize to numbers
+  const pageNum = parseInt(page.toString(), 10);
+  const pageSizeNum = parseInt(pageSize.toString(), 10);
+
+  // Calculate skip value for pagination
+  const skip = (pageNum - 1) * pageSizeNum;
+
+  // Get total count of matching documents
+  const total = await Student.countDocuments(query);
+
+  // Get paginated results
+  const students = await Student.find(query)
+    .sort({ admissionNumber: 1 })
+    .skip(skip)
+    .limit(pageSizeNum);
 
   res.status(200).json({
     total,
