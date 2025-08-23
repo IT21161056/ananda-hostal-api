@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
+
 dotenv.config();
 import path from "path";
 import cors from "cors";
@@ -15,6 +16,7 @@ import { logger } from "./middleware/logger.js";
 import corsOptions from "./config/corsOptions.js";
 import connectMongoDb from "./config/dbConnection.js";
 import errorMiddleware from "./middleware/errorMiddleware.js";
+import { attachIO } from "./middleware/socketMiddleware.js";
 import { getSwaggerOptions } from "./config/swaggerConfig.js";
 
 // Routes
@@ -22,6 +24,8 @@ import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import studentRoutes from "./routes/student.routes.js";
 import attendanceRoutes from "./routes/attendance.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
+import testRoutes from "./routes/test.routes.js";
 
 // 🔹 Socket handler (central entry point)
 import socketHandler from "./sockets/index.js";
@@ -34,9 +38,11 @@ const server = createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "*", // Replace with your React app's URL
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE","OPTIONS"],
   },
 });
+app.use(attachIO(io));
+
 const PORT = process.env.PORT || 5001;
 const BASE_URL = process.env.API_BASE_URL || "/api/v1";
 
@@ -118,6 +124,8 @@ app.use(`${BASE_URL}/auth`, authRoutes);
 app.use(`${BASE_URL}/users`, userRoutes);
 app.use(`${BASE_URL}/student`, studentRoutes);
 app.use(`${BASE_URL}/attendance`, attendanceRoutes);
+app.use(`${BASE_URL}/notification`, notificationRoutes);
+app.use(`${BASE_URL}/test`, testRoutes);
 
 app.all("*", (req, res) => {
   res.status(404);
