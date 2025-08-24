@@ -2,6 +2,12 @@ import asyncHandler from "express-async-handler";
 import AttendanceSession from "../models/attendanceSession.model.js";
 import AttendanceRecord from "../models/attendanceRecord.model.js";
 import Student from "../models/student.model.js";
+import User from "../models/user.model.js";
+import Notification from "../models/notification.model.js";
+import {
+  getUserIdsByRoles,
+  sendNotifications,
+} from "./notification.controller.js";
 
 /**
  * @desc    Create new attendance session
@@ -90,6 +96,36 @@ const createAttendanceSession = asyncHandler(async (req, res) => {
       },
     })
     .populate("markedBy", "firstName lastName role");
+
+  // NOTIFICATION INTEGRATION STARTS HERE
+  try {
+    // Get all admins and wardens except the one who marked attendance
+    const staffToNotify = await getUserIdsByRoles(
+      ["admin", "warden"],
+      req.user._id
+    );
+
+    // Create notification message
+    const sessionTime = sessionType === "morning" ? "Morning" : "Evening";
+    const notificationTitle = `${sessionTime} Attendance Marked`;
+    const notificationMessage = `${req.user.firstName} ${req.user.lastName} marked attendance for ${records.length} students (${presentCount} present, ${absentCount} absent)`;
+
+    // Create notifications for each staff member
+    // Send notifications (pass req to access io)
+    await sendNotifications(
+      staffToNotify,
+      {
+        title: notificationTitle,
+        message: notificationMessage,
+        type: "info",
+      },
+      req
+    );
+  } catch (notificationError) {
+    console.error("Failed to send notifications:", notificationError);
+    // Don't fail the whole request if notifications fail
+  }
+  // NOTIFICATION INTEGRATION ENDS HERE
 
   res.status(201).json({
     success: true,
