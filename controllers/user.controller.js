@@ -74,6 +74,16 @@ const getAllUsers = asyncHandler(async (req, res) => {
   const { search, email, role, firstName, lastName } = req.query;
   let query = {};
 
+  // Ensure we have the logged-in user's ID
+  if (!req.user || !req.user._id)
+    throw new Error({
+      success: false,
+      message: "Unauthorized: User not found",
+    });
+
+  // Exclude the currently logged in user
+  query._id = { $ne: req.user._id };
+
   // Build the query
   if (email) {
     query.email = { $regex: new RegExp(email, "i") };

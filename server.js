@@ -24,6 +24,7 @@ import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import studentRoutes from "./routes/student.routes.js";
 import attendanceRoutes from "./routes/attendance.routes.js";
+import mealplanRoutes from "./routes/mealplan.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import testRoutes from "./routes/test.routes.js";
 
@@ -38,7 +39,7 @@ const server = createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "*", // Replace with your React app's URL
-    methods: ["GET", "POST", "PUT", "DELETE","OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   },
 });
 app.use(attachIO(io));
@@ -124,6 +125,7 @@ app.use(`${BASE_URL}/auth`, authRoutes);
 app.use(`${BASE_URL}/users`, userRoutes);
 app.use(`${BASE_URL}/student`, studentRoutes);
 app.use(`${BASE_URL}/attendance`, attendanceRoutes);
+app.use(`${BASE_URL}/mealplan`, mealplanRoutes);
 app.use(`${BASE_URL}/notification`, notificationRoutes);
 app.use(`${BASE_URL}/test`, testRoutes);
 
