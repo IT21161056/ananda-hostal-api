@@ -79,10 +79,6 @@ This API provides **secure identity management** for academic institutions with:
         name: "Users",
         description: "User profile and account management",
       },
-      {
-        name: "Admin",
-        description: "Administrative user operations",
-      },
     ],
     components: {
       securitySchemes: {
