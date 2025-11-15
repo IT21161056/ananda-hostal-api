@@ -43,7 +43,7 @@ const studentSchema = new Schema(
       },
       address: {
         type: String,
-        required: [true, "Address is required"],
+        // required: [true, "Address is required"],
         trim: true,
         maxLength: [200, "Address cannot exceed 200 characters"],
       },
@@ -61,7 +61,7 @@ const studentSchema = new Schema(
 
     class: {
       type: String,
-      required: [true, "Class is required"],
+      // required: [true, "Class is required"],
       trim: true,
     },
 

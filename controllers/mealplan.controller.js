@@ -7,7 +7,16 @@ import MealPlan from "../models/mealplan.model.js";
  * @access  Private/Admin
  */
 const createMealPlan = asyncHandler(async (req, res) => {
-  const { day, estimatedCost, breakfast, lunch, dinner } = req.body;
+  const {
+    day,
+    estimatedCost,
+    breakfast,
+    lunch,
+    dinner,
+    breakfastInventory,
+    lunchInventory,
+    dinnerInventory,
+  } = req.body;
 
   if (!day || !estimatedCost) {
     res.status(400);
@@ -27,8 +36,18 @@ const createMealPlan = asyncHandler(async (req, res) => {
     breakfast: breakfast || [],
     lunch: lunch || [],
     dinner: dinner || [],
+    breakfastInventory: breakfastInventory || [],
+    lunchInventory: lunchInventory || [],
+    dinnerInventory: dinnerInventory || [],
     createdBy: req.user?._id || null,
   });
+
+  // Populate inventory items for response
+  await mealPlan.populate([
+    "breakfastInventory.inventoryItemId",
+    "lunchInventory.inventoryItemId",
+    "dinnerInventory.inventoryItemId",
+  ]);
 
   res.status(201).json({
     success: true,
@@ -65,7 +84,15 @@ const getAllMealPlans = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
 
   const [mealPlans, total] = await Promise.all([
-    MealPlan.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    MealPlan.find(query)
+      .populate([
+        "breakfastInventory.inventoryItemId",
+        "lunchInventory.inventoryItemId",
+        "dinnerInventory.inventoryItemId",
+      ])
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
     MealPlan.countDocuments(query),
   ]);
 
@@ -81,7 +108,11 @@ const getAllMealPlans = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 const getMealPlanById = asyncHandler(async (req, res) => {
-  const mealPlan = await MealPlan.findById(req.params.id);
+  const mealPlan = await MealPlan.findById(req.params.id).populate([
+    "breakfastInventory.inventoryItemId",
+    "lunchInventory.inventoryItemId",
+    "dinnerInventory.inventoryItemId",
+  ]);
 
   if (!mealPlan) {
     res.status(404);
@@ -100,7 +131,16 @@ const getMealPlanById = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 const updateMealPlan = asyncHandler(async (req, res) => {
-  const { day, estimatedCost, breakfast, lunch, dinner } = req.body;
+  const {
+    day,
+    estimatedCost,
+    breakfast,
+    lunch,
+    dinner,
+    breakfastInventory,
+    lunchInventory,
+    dinnerInventory,
+  } = req.body;
 
   const mealPlan = await MealPlan.findById(req.params.id);
   if (!mealPlan) {
@@ -119,11 +159,22 @@ const updateMealPlan = asyncHandler(async (req, res) => {
   }
 
   if (estimatedCost !== undefined) mealPlan.estimatedCost = estimatedCost;
-  if (breakfast) mealPlan.breakfast = breakfast;
-  if (lunch) mealPlan.lunch = lunch;
-  if (dinner) mealPlan.dinner = dinner;
+  if (breakfast !== undefined) mealPlan.breakfast = breakfast;
+  if (lunch !== undefined) mealPlan.lunch = lunch;
+  if (dinner !== undefined) mealPlan.dinner = dinner;
+  if (breakfastInventory !== undefined)
+    mealPlan.breakfastInventory = breakfastInventory;
+  if (lunchInventory !== undefined) mealPlan.lunchInventory = lunchInventory;
+  if (dinnerInventory !== undefined) mealPlan.dinnerInventory = dinnerInventory;
 
   const updatedMealPlan = await mealPlan.save();
+
+  // Populate inventory items for response
+  await updatedMealPlan.populate([
+    "breakfastInventory.inventoryItemId",
+    "lunchInventory.inventoryItemId",
+    "dinnerInventory.inventoryItemId",
+  ]);
 
   res.status(200).json({
     success: true,
