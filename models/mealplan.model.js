@@ -23,17 +23,72 @@ const mealPlanSchema = new mongoose.Schema(
     },
 
     breakfast: {
-      type: [String], // list of breakfast items
+      type: [String], // list of breakfast items (food names/descriptions)
       default: [],
     },
 
     lunch: {
-      type: [String], // list of lunch items
+      type: [String], // list of lunch items (food names/descriptions)
       default: [],
     },
 
     dinner: {
-      type: [String], // list of dinner items
+      type: [String], // list of dinner items (food names/descriptions)
+      default: [],
+    },
+
+    // Inventory items used for each meal with quantities
+    breakfastInventory: {
+      type: [
+        {
+          inventoryItemId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "InventoryItem",
+            required: true,
+          },
+          quantity: {
+            type: Number,
+            required: true,
+            min: [0, "Quantity cannot be negative"],
+          },
+        },
+      ],
+      default: [],
+    },
+
+    lunchInventory: {
+      type: [
+        {
+          inventoryItemId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "InventoryItem",
+            required: true,
+          },
+          quantity: {
+            type: Number,
+            required: true,
+            min: [0, "Quantity cannot be negative"],
+          },
+        },
+      ],
+      default: [],
+    },
+
+    dinnerInventory: {
+      type: [
+        {
+          inventoryItemId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "InventoryItem",
+            required: true,
+          },
+          quantity: {
+            type: Number,
+            required: true,
+            min: [0, "Quantity cannot be negative"],
+          },
+        },
+      ],
       default: [],
     },
 
