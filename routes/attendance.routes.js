@@ -6,6 +6,7 @@ import {
   updateAttendanceSession,
   deleteAttendanceSession,
   getStudentAttendanceHistory,
+  checkAttendanceExists,
 } from "../controllers/attendance.controller.js";
 import { protect, authorizeRoles } from "../middleware/authmiddleware.js";
 
@@ -15,6 +16,10 @@ router
   .route("/")
   .post(protect, authorizeRoles("admin", "warden"), createAttendanceSession)
   .get(protect, authorizeRoles("admin", "warden"), getAttendanceSessions);
+
+router
+  .route("/check")
+  .get(protect, authorizeRoles("admin", "warden"), checkAttendanceExists);
 
 router
   .route("/:id")

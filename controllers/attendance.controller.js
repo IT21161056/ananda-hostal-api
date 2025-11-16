@@ -15,13 +15,13 @@ import {
  * @access  Private/Warden
  */
 const createAttendanceSession = asyncHandler(async (req, res) => {
-  const { sessionType, notes, records } = req.body;
+  const { sessionType, notes, records, date } = req.body;
 
   // Validate required fields
   if (!sessionType || !records) {
     res.status(400);
     throw new Error(
-      "Please provide all required fields: sessionType, dorm, and records"
+      "Please provide all required fields: sessionType and records"
     );
   }
 
@@ -30,6 +30,41 @@ const createAttendanceSession = asyncHandler(async (req, res) => {
   if (!validSessionTypes.includes(sessionType)) {
     res.status(400);
     throw new Error("Invalid session type. Must be 'morning' or 'evening'");
+  }
+
+  // Parse and validate date (default to today if not provided)
+  let attendanceDate = new Date();
+  if (date) {
+    attendanceDate = new Date(date);
+    if (isNaN(attendanceDate.getTime())) {
+      res.status(400);
+      throw new Error("Invalid date format. Please provide a valid date.");
+    }
+    // Set to start of day for consistency
+    attendanceDate.setHours(0, 0, 0, 0);
+  } else {
+    attendanceDate.setHours(0, 0, 0, 0);
+  }
+
+  // Check if attendance already exists for this date and session type
+  const startOfDay = new Date(attendanceDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(attendanceDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const existingSession = await AttendanceSession.findOne({
+    sessionType,
+    markedAt: {
+      $gte: startOfDay,
+      $lte: endOfDay,
+    },
+  });
+
+  if (existingSession) {
+    res.status(409); // Conflict status code
+    throw new Error(
+      `Attendance for ${sessionType} session on ${attendanceDate.toLocaleDateString()} already exists. Please update or delete the existing record instead.`
+    );
   }
 
   // Validate all student records and create attendance records
@@ -74,7 +109,7 @@ const createAttendanceSession = asyncHandler(async (req, res) => {
     );
   }
 
-  // Create the session
+  // Create the session with the specified date
   const session = await AttendanceSession.create({
     sessionType,
     attendanceRecords: attendanceRecordIds,
@@ -82,6 +117,7 @@ const createAttendanceSession = asyncHandler(async (req, res) => {
     presentCount,
     absentCount,
     markedBy: req.user._id,
+    markedAt: attendanceDate, // Set the attendance date
     notes: notes || "",
     isCompleted: false,
   });
@@ -219,7 +255,7 @@ const getAttendanceSessions = asyncHandler(async (req, res) => {
 
   let query = {};
 
-  // Single date filtering
+  // Single date filtering - use markedAt if available, otherwise createdAt
   if (date) {
     const startDate = new Date(date);
     startDate.setHours(0, 0, 0, 0); // Start of the day
@@ -227,14 +263,29 @@ const getAttendanceSessions = asyncHandler(async (req, res) => {
     const endDate = new Date(date);
     endDate.setHours(23, 59, 59, 999); // End of the day
 
-    query.createdAt = {
-      $gte: startDate,
-      $lte: endDate,
-    };
+    // Filter by markedAt (attendance date) or createdAt (for backwards compatibility)
+    query.$or = [
+      {
+        markedAt: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+      },
+      {
+        // For sessions without markedAt, use createdAt
+        markedAt: { $exists: false },
+        createdAt: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+      },
+    ];
   }
 
-  // Other filters
-  if (sessionType) query.sessionType = sessionType;
+  // Other filters (sessionType is applied to the base query, not $or)
+  if (sessionType) {
+    query.sessionType = sessionType;
+  }
   if (dorm) query.dorm = dorm;
   if (isCompleted) query.isCompleted = isCompleted === "true";
 
@@ -264,7 +315,7 @@ const getAttendanceSessions = asyncHandler(async (req, res) => {
   // Transform the data to match your interface
   const formattedSessions = sessions.map((session) => ({
     id: session._id.toString(),
-    date: session.createdAt.toISOString().split("T")[0], // Format as YYYY-MM-DD
+    date: (session.markedAt || session.createdAt).toISOString().split("T")[0], // Format as YYYY-MM-DD, use markedAt if available
     session: session.sessionType,
     presentCount: session.presentCount,
     absentCount: session.absentCount,
@@ -387,6 +438,58 @@ const deleteAttendanceSession = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Check if attendance exists for a specific date and session type
+ * @route   GET /api/attendance/check
+ * @access  Private/Warden
+ */
+const checkAttendanceExists = asyncHandler(async (req, res) => {
+  const { date, sessionType } = req.query;
+
+  if (!date || !sessionType) {
+    res.status(400);
+    throw new Error("Please provide date and sessionType parameters");
+  }
+
+  // Parse date
+  const attendanceDate = new Date(date);
+  if (isNaN(attendanceDate.getTime())) {
+    res.status(400);
+    throw new Error("Invalid date format");
+  }
+
+  attendanceDate.setHours(0, 0, 0, 0);
+  const startOfDay = new Date(attendanceDate);
+  const endOfDay = new Date(attendanceDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  // Check if attendance exists - check both markedAt and createdAt for backwards compatibility
+  const existingSession = await AttendanceSession.findOne({
+    sessionType,
+    $or: [
+      {
+        markedAt: {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+      },
+      {
+        // For sessions without markedAt, check createdAt
+        markedAt: { $exists: false },
+        createdAt: {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+      },
+    ],
+  }).select("_id markedAt sessionType");
+
+  res.status(200).json({
+    exists: !!existingSession,
+    session: existingSession || null,
+  });
+});
+
+/**
  * @desc    Get student attendance history
  * @route   GET /api/attendance/student/:studentId
  * @access  Private/Warden
@@ -454,4 +557,5 @@ export {
   updateAttendanceSession,
   deleteAttendanceSession,
   getStudentAttendanceHistory,
+  checkAttendanceExists,
 };
