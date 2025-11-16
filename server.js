@@ -27,6 +27,7 @@ import attendanceRoutes from "./routes/attendance.routes.js";
 import mealplanRoutes from "./routes/mealplan.routes.js";
 import inventoryRoutes from "./routes/inventory.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
 import testRoutes from "./routes/test.routes.js";
 
 // 🔹 Socket handler (central entry point)
@@ -129,6 +130,7 @@ app.use(`${BASE_URL}/attendance`, attendanceRoutes);
 app.use(`${BASE_URL}/mealplan`, mealplanRoutes);
 app.use(`${BASE_URL}/inventory`, inventoryRoutes);
 app.use(`${BASE_URL}/notification`, notificationRoutes);
+app.use(`${BASE_URL}/dashboard`, dashboardRoutes);
 app.use(`${BASE_URL}/test`, testRoutes);
 
 app.all("*", (req, res) => {
