@@ -26,12 +26,16 @@ import studentRoutes from "./routes/student.routes.js";
 import attendanceRoutes from "./routes/attendance.routes.js";
 import mealplanRoutes from "./routes/mealplan.routes.js";
 import inventoryRoutes from "./routes/inventory.routes.js";
+import inventoryUsageRoutes from "./routes/inventoryUsage.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
 import testRoutes from "./routes/test.routes.js";
 
 // 🔹 Socket handler (central entry point)
 import socketHandler from "./sockets/index.js";
+
+// 🔹 Cron jobs for automated inventory management
+import { initializeCronJobs } from "./utils/cronJobs.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,7 +53,12 @@ app.use(attachIO(io));
 const PORT = process.env.PORT || 5001;
 const BASE_URL = process.env.API_BASE_URL || "/api/v1";
 
+// Connect to MongoDB
 connectMongoDb();
+
+// Initialize cron jobs for automated inventory management
+// The cron jobs will wait for database connection automatically
+initializeCronJobs();
 
 const swaggerDocs = swaggerJsDoc(getSwaggerOptions(PORT, BASE_URL));
 
@@ -129,6 +138,7 @@ app.use(`${BASE_URL}/student`, studentRoutes);
 app.use(`${BASE_URL}/attendance`, attendanceRoutes);
 app.use(`${BASE_URL}/mealplan`, mealplanRoutes);
 app.use(`${BASE_URL}/inventory`, inventoryRoutes);
+app.use(`${BASE_URL}/inventory-usage`, inventoryUsageRoutes);
 app.use(`${BASE_URL}/notification`, notificationRoutes);
 app.use(`${BASE_URL}/dashboard`, dashboardRoutes);
 app.use(`${BASE_URL}/test`, testRoutes);
