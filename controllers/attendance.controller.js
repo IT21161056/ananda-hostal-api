@@ -33,17 +33,20 @@ const createAttendanceSession = asyncHandler(async (req, res) => {
   }
 
   // Parse and validate date (default to today if not provided)
-  let attendanceDate = new Date();
+  let attendanceDate;
   if (date) {
-    attendanceDate = new Date(date);
+    // Parse YYYY-MM-DD as UTC midnight
+    const [year, month, day] = date.split('-').map(Number);
+    attendanceDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+    
     if (isNaN(attendanceDate.getTime())) {
       res.status(400);
-      throw new Error("Invalid date format. Please provide a valid date.");
+      throw new Error("Invalid date format. Use YYYY-MM-DD.");
     }
-    // Set to start of day for consistency
-    attendanceDate.setHours(0, 0, 0, 0);
   } else {
-    attendanceDate.setHours(0, 0, 0, 0);
+    // Current UTC date at midnight
+    const now = new Date();
+    attendanceDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
   }
 
   // Check if attendance already exists for this date and session type
@@ -257,11 +260,12 @@ const getAttendanceSessions = asyncHandler(async (req, res) => {
 
   // Single date filtering - use markedAt if available, otherwise createdAt
   if (date) {
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0); // Start of the day
-
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999); // End of the day
+    // Parse YYYY-MM-DD as UTC midnight
+    const [year, month, day] = date.split('-').map(Number);
+    const startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+    
+    const endDate = new Date(startDate);
+    endDate.setUTCHours(23, 59, 59, 999); // End of the day in UTC
 
     // Filter by markedAt (attendance date) or createdAt (for backwards compatibility)
     query.$or = [
@@ -450,17 +454,18 @@ const checkAttendanceExists = asyncHandler(async (req, res) => {
     throw new Error("Please provide date and sessionType parameters");
   }
 
-  // Parse date
-  const attendanceDate = new Date(date);
+  // Parse date as UTC midnight
+  const [year, month, day] = date.split('-').map(Number);
+  const attendanceDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+  
   if (isNaN(attendanceDate.getTime())) {
     res.status(400);
-    throw new Error("Invalid date format");
+    throw new Error("Invalid date format. Use YYYY-MM-DD.");
   }
 
-  attendanceDate.setHours(0, 0, 0, 0);
   const startOfDay = new Date(attendanceDate);
   const endOfDay = new Date(attendanceDate);
-  endOfDay.setHours(23, 59, 59, 999);
+  endOfDay.setUTCHours(23, 59, 59, 999);
 
   // Check if attendance exists - check both markedAt and createdAt for backwards compatibility
   const existingSession = await AttendanceSession.findOne({

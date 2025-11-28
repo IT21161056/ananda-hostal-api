@@ -10,7 +10,7 @@ const inventoryItemSchema = new mongoose.Schema(
     category: {
       type: String,
       required: [true, "Category is required"],
-      enum: ["vegetables", "grains", "dairy", "spices", "other"],
+      enum: ["vegetables", "fruits", "grains", "dairy", "meat_fish", "grocery", "oils", "beverages", "spices", "other"],
       lowercase: true,
     },
     currentStock: {
