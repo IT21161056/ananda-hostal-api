@@ -156,7 +156,7 @@ const getUserById = asyncHandler(async (req, res) => {
  */
 const updateUser = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { firstName, lastName, email, nic, phone, role, password } = req.body;
+  const { firstName, lastName, email, nic, phone, role, password, isActive } = req.body;
 
   const user = await User.findById(id);
 
@@ -172,7 +172,8 @@ const updateUser = asyncHandler(async (req, res) => {
     !nic &&
     !phone &&
     !role &&
-    !password
+    !password &&
+    isActive === undefined
   ) {
     res.status(400);
     throw new Error("Please provide at least one field to update");
@@ -202,6 +203,7 @@ const updateUser = asyncHandler(async (req, res) => {
   if (phone) updateData.phone = phone;
   if (role) updateData.role = role;
   if (password) updateData.password = password;
+  if (typeof isActive === "boolean") updateData.isActive = isActive;
 
   const updatedUser = await User.findByIdAndUpdate(id, updateData, {
     new: true,
@@ -216,7 +218,36 @@ const updateUser = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Delete user
+ * @desc    Toggle user active status
+ * @route   PATCH /api/users/:id/status
+ * @access  Private/Admin
+ */
+const toggleUserStatus = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const user = await User.findById(id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  user.isActive = !user.isActive;
+  await user.save();
+
+  const updatedUser = await User.findById(id).select("-password");
+
+  res.status(200).json({
+    success: true,
+    message: `User ${user.firstName} ${user.lastName} status updated to ${
+      user.isActive ? "active" : "inactive"
+    }`,
+    data: updatedUser,
+  });
+});
+
+/**
+ * @desc    Permanently delete user
  * @route   DELETE /api/users/:id
  * @access  Private/Admin
  */
@@ -324,6 +355,7 @@ export {
   getAllUsers,
   getUserById,
   updateUser,
+  toggleUserStatus,
   deleteUser,
   getCurrentUserProfile,
   updateCurrentUserProfile,

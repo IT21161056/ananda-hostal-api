@@ -139,7 +139,9 @@ const getAllStudents = asyncHandler(async (req, res) => {
     pageSize = 10, // Default to 10 items per page
   } = req.query;
 
-  let query = {};
+  let query = {
+    isDeleted: { $ne: true }, // Exclude deleted students
+  };
 
   if (admissionNumber) {
     query.admissionNumber = admissionNumber;
@@ -193,15 +195,23 @@ const getAllStudents = asyncHandler(async (req, res) => {
 
 /**
  * @desc    Get student by admission number
- * @route   GET /api/students/:admissionNumber
+ * @route   GET /api/students/:id
  * @access  Private/Admin
  */
 const getStudentByAdmissionNumber = asyncHandler(async (req, res) => {
-  const student = await Student.findOne({
-    admissionNumber: req.params.admissionNumber,
-  });
-
+  const { id } = req.params;
+  
+  // Try to find by _id first, then by admissionNumber
+  let student = await Student.findById(id);
+  
   if (!student) {
+    student = await Student.findOne({
+      admissionNumber: id,
+      isDeleted: { $ne: true },
+    });
+  }
+
+  if (!student || student.isDeleted) {
     res.status(404);
     throw new Error("Student not found");
   }
@@ -224,7 +234,7 @@ const updateStudent = asyncHandler(async (req, res) => {
   console.log("id >>", id);
 
   const student = await Student.findById(id);
-  if (!student) {
+  if (!student || student.isDeleted) {
     res.status(404);
     throw new Error("Student not found");
   }
@@ -324,21 +334,28 @@ const updateStudent = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Delete student
- * @route   DELETE /api/students/:admissionNumber
+ * @desc    Delete student (soft delete - flag as deleted)
+ * @route   DELETE /api/students/:id
  * @access  Private/Admin
  */
 const deleteStudent = asyncHandler(async (req, res) => {
-  const { admissionNumber } = req.params;
+  const { id } = req.params;
 
-  const student = await Student.findOne({ admissionNumber });
+  const student = await Student.findById(id);
 
   if (!student) {
     res.status(404);
     throw new Error("Student not found");
   }
 
-  await Student.deleteOne({ admissionNumber });
+  if (student.isDeleted) {
+    res.status(400);
+    throw new Error("Student is already deleted");
+  }
+
+  // Flag student as deleted instead of hard delete
+  student.isDeleted = true;
+  await student.save();
 
   res.status(200).json({
     success: true,
@@ -348,15 +365,23 @@ const deleteStudent = asyncHandler(async (req, res) => {
 
 /**
  * @desc    Toggle student active status
- * @route   PATCH /api/students/:admissionNumber/status
+ * @route   PATCH /api/students/:id/status
  * @access  Private/Admin
  */
 const toggleStudentStatus = asyncHandler(async (req, res) => {
-  const { admissionNumber } = req.params;
+  const { id } = req.params;
 
-  const student = await Student.findOne({ admissionNumber });
-
+  // Try to find by _id first, then by admissionNumber
+  let student = await Student.findById(id);
+  
   if (!student) {
+    student = await Student.findOne({
+      admissionNumber: id,
+      isDeleted: { $ne: true },
+    });
+  }
+
+  if (!student || student.isDeleted) {
     res.status(404);
     throw new Error("Student not found");
   }
@@ -384,7 +409,10 @@ const toggleStudentStatus = asyncHandler(async (req, res) => {
  */
 const getStudentsForAttendance = asyncHandler(async (req, res) => {
   const { name, dorm, search } = req.query;
-  let query = { isActive: true }; // Only include active students
+  let query = { 
+    isActive: true, // Only include active students
+    isDeleted: { $ne: true }, // Exclude deleted students
+  };
 
   // Add name filter if provided
   if (name) {

@@ -31,6 +31,11 @@ const login = asyncHandler(async (req, res) => {
     throw new Error("Invalid email or password");
   }
 
+  if (foundUser.isActive === false) {
+    res.status(403);
+    throw new Error("Account is deactivated. Please contact an administrator.");
+  }
+
   const accessToken = createAccessToken(
     foundUser,
     process.env.ACCESS_TOKEN_SECRET
@@ -82,6 +87,11 @@ const refresh = asyncHandler(async (req, res) => {
     if (!foundUser) {
       res.status(404);
       throw new Error("User not found");
+    }
+
+    if (foundUser.isActive === false) {
+      res.status(403);
+      throw new Error("Account is deactivated. Please contact an administrator.");
     }
 
     const newAccessToken = createAccessToken(
