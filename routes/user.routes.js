@@ -5,6 +5,7 @@ import {
   getAllUsers,
   getUserById,
   updateUser,
+  toggleUserStatus,
   getCurrentUserProfile,
   updateCurrentUserProfile,
   deleteUser,
@@ -330,6 +331,10 @@ router.route("/:id").get(protect, authorizeRoles("admin"), getUserById);
  *         description: Server error
  */
 router.route("/:id").put(protect, authorizeRoles("admin"), updateUser);
+
+router
+  .route("/:id/status")
+  .patch(protect, authorizeRoles("admin"), toggleUserStatus);
 
 /**
  * @swagger

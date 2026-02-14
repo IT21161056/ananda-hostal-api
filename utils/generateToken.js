@@ -18,7 +18,7 @@ const createAccessToken = (user, token) => {
       },
     },
     token,
-    { expiresIn: ACCESS_TOKEN_EXPIRES_IN }
+    { expiresIn: ACCESS_TOKEN_EXPIRES_IN },
   );
 };
 
@@ -31,7 +31,7 @@ const createRefreshToken = (user, token) => {
     token,
     {
       expiresIn: REFRESH_TOKEN_EXPIRES_IN,
-    }
+    },
   );
 };
 

@@ -36,10 +36,14 @@ const UserSchema = new Schema(
       default: "student",
       enum: ["admin", "warden", "accountant", "kitchen"],
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Password hashing part

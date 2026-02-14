@@ -23,7 +23,7 @@ const protect = asyncHandler(async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET); // checks token expiration time
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
     const user = await User.findById(decoded.user.id).select("-password");
 
@@ -35,19 +35,14 @@ const protect = asyncHandler(async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    console.error("Token verification error:", error.message); // Log the specific error
+    console.error("Token verification error:", error.message);
 
-    let message = "Not authorized, token failed";
-    if (error.name === "TokenExpiredError") {
-      message = "Not authorized, token expired";
-    } else if (error.name === "JsonWebTokenError") {
-      message = "Not authorized, invalid token";
-    }
-
+    // Send consistent error response format
     res.status(401).json({
       success: false,
-      message: message,
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+      message: "Not authorized, token failed",
+      error:
+        error.name === "TokenExpiredError" ? "token_expired" : "invalid_token",
     });
   }
 });
@@ -66,7 +61,7 @@ const authorizeRoles = (...roles) => {
     if (!roles.includes(req.user.role)) {
       res.status(403);
       throw new Error(
-        `Role (${req.user.role}) is not authorized to access this resource`
+        `Role (${req.user.role}) is not authorized to access this resource`,
       );
     }
 
