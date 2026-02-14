@@ -199,7 +199,7 @@ const studentSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // // Indexes for better query performance

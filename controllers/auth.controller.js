@@ -6,8 +6,16 @@ import {
   createRefreshToken,
 } from "../utils/generateToken.js";
 
+// Cookie configuration helper
+const getCookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  path: "/",
+});
+
 // @desc Login
-// @route POST /auth
+// @route POST /auth/login
 // @access Public
 const login = asyncHandler(async (req, res) => {
   const { password, email } = req.body;
@@ -38,20 +46,18 @@ const login = asyncHandler(async (req, res) => {
 
   const accessToken = createAccessToken(
     foundUser,
-    process.env.ACCESS_TOKEN_SECRET
+    process.env.ACCESS_TOKEN_SECRET,
   );
 
   const refreshToken = createRefreshToken(
     foundUser,
-    process.env.REFRESH_TOKEN_SECRET
+    process.env.REFRESH_TOKEN_SECRET,
   );
 
   // Create secure cookie with refresh token
   res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "None",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    ...getCookieOptions(),
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 
   const userResponse = {
@@ -66,7 +72,11 @@ const login = asyncHandler(async (req, res) => {
     updatedAt: foundUser.updatedAt,
   };
 
-  res.json({ user: userResponse, accessToken });
+  res.json({
+    success: true,
+    user: userResponse,
+    accessToken,
+  });
 });
 
 // @desc Refresh
@@ -76,8 +86,10 @@ const refresh = asyncHandler(async (req, res) => {
   const refreshToken = req.cookies.refreshToken;
 
   if (!refreshToken) {
-    res.status(401);
-    throw new Error("Refresh token required");
+    return res.status(401).json({
+      success: false,
+      message: "Refresh token required",
+    });
   }
 
   try {
@@ -85,26 +97,37 @@ const refresh = asyncHandler(async (req, res) => {
     const foundUser = await User.findById(decoded.id).exec();
 
     if (!foundUser) {
-      res.status(404);
-      throw new Error("User not found");
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
     }
 
     if (foundUser.isActive === false) {
-      res.status(403);
-      throw new Error("Account is deactivated. Please contact an administrator.");
+      return res.status(403).json({
+        success: false,
+        message: "Account is deactivated. Please contact an administrator.",
+      });
     }
 
     const newAccessToken = createAccessToken(
       foundUser,
-      process.env.ACCESS_TOKEN_SECRET
+      process.env.ACCESS_TOKEN_SECRET,
     );
 
     res.status(200).json({
+      success: true,
       accessToken: newAccessToken,
     });
   } catch (error) {
-    res.status(403);
-    throw new Error("Invalid refresh token");
+    // Clear the invalid refresh token cookie
+    res.clearCookie("refreshToken", getCookieOptions());
+
+    return res.status(403).json({
+      success: false,
+      message: "Invalid or expired refresh token",
+      error: "refresh_token_invalid",
+    });
   }
 });
 
@@ -115,17 +138,13 @@ const logout = asyncHandler(async (req, res) => {
   const cookies = req.cookies;
 
   if (!cookies?.refreshToken) {
-    return res.status(204).json({
+    return res.status(200).json({
       success: true,
-      message: "No content",
+      message: "No refresh token found",
     });
   }
 
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    sameSite: "None",
-    secure: true,
-  });
+  res.clearCookie("refreshToken", getCookieOptions());
 
   res.status(200).json({
     success: true,

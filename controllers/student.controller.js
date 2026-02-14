@@ -200,10 +200,10 @@ const getAllStudents = asyncHandler(async (req, res) => {
  */
 const getStudentByAdmissionNumber = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  
+
   // Try to find by _id first, then by admissionNumber
   let student = await Student.findById(id);
-  
+
   if (!student) {
     student = await Student.findOne({
       admissionNumber: id,
@@ -373,7 +373,7 @@ const toggleStudentStatus = asyncHandler(async (req, res) => {
 
   // Try to find by _id first, then by admissionNumber
   let student = await Student.findById(id);
-  
+
   if (!student) {
     student = await Student.findOne({
       admissionNumber: id,
@@ -409,7 +409,7 @@ const toggleStudentStatus = asyncHandler(async (req, res) => {
  */
 const getStudentsForAttendance = asyncHandler(async (req, res) => {
   const { name, dorm, search } = req.query;
-  let query = { 
+  let query = {
     isActive: true, // Only include active students
     isDeleted: { $ne: true }, // Exclude deleted students
   };
